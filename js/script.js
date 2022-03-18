@@ -3,9 +3,16 @@ const profileInfo = document.querySelector(".overview");
 
 const username = "carolb92";
 
-// display repo list
+// display repo unordered list
 const repoList = document.querySelector(".repo-list");
 
+// selects section where all repo information appears
+const repoSection = document.querySelector(".repos");
+
+// selects section where the individual repo data will appear
+const individualRepoData = document.querySelector(".repo-data");
+
+// function to fetch github user data
 const getUserData = async function () {
     const response = await fetch(`https://api.github.com/users/${username}`);
     const userData = await response.json();
@@ -14,6 +21,7 @@ const getUserData = async function () {
 };
 getUserData();
 
+// function to display the fetched user information
 const userInfo = function (userData) {
     const userInfoDiv = document.createElement("div");
     userInfoDiv.classList.add("user-info");
@@ -31,18 +39,66 @@ const userInfo = function (userData) {
     getRepos();
 };
 
+// function to fetch repo data w/ parameters for most recently updated and limit of 100 per page
 const getRepos = async function () {
     const reposRes = await fetch (`https://api.github.com/users/${username}/repos?sort=updated&per_page=100`);
     const repos = await reposRes.json();
     console.log(repos);
-    repoInfo(repos);
+    displayRepoInfo(repos);
 };
 
-const repoInfo = function (repos) {
+// function to display information about each repo
+const displayRepoInfo = function (repos) {
     for (let item of repos) {
         let li = document.createElement("li");
         li.classList.add("repo");
         li.innerHTML = `<h3> ${item.name} </h3>`;
         repoList.append(li);
     }
+};
+
+// click event listener on the unordered list w/ class repo-list
+repoList.addEventListener("click", function (e) {
+    // checks if the event target (the element that was clicked on) matches the <h3> element (the name of the repo)
+    if (e.target.matches("h3")) {
+        // targets the innerText where the event happens
+        let repoName = e.target.innerText;
+        getRepoInfo(repoName);
+    }
+});
+
+// function to get specific repo information
+const getRepoInfo = async function (repoName) {
+    const repoInfoRes = await fetch(`https://api.github.com/repos/${username}/${repoName}`);
+    const repoInfo = await repoInfoRes.json();
+    console.log(repoInfo);
+
+    // fetch data from the languages_url property of repoInfo
+    const fetchLanguages = await fetch(repoInfo.languages_url);
+    const languageData = await fetchLanguages.json();
+    console.log(languageData);
+
+    // make a list of languages
+    const languages = [];
+    for (let language in languageData) {
+        languages.push(language);
+    }
+    console.log(languages);
+    displayIndivRepoInfo(repoInfo, languages);
+};
+
+// function to display specific repo information
+const displayIndivRepoInfo = function (repoInfo, languages) {
+    individualRepoData.innerHTML = "";
+    const individualRepoDiv = document.createElement("div");
+    individualRepoDiv.innerHTML = `
+    <h3>Name: ${repoInfo.name}</h3>
+        <p> Description: ${repoInfo.description}</p>
+        <p> Default Branch: ${repoInfo.default_branch}</p>
+        <p> Languages: ${languages.join(", ")}</p>
+        <a class="visit" href="${repoInfo.html_url}" target="_blank" rel="noreferrer noopener">View Repo on GitHub!</a>
+    `
+    individualRepoData.append(individualRepoDiv);
+    individualRepoData.classList.remove("hide");
+    repoSection.classList.add("hide");
 };
